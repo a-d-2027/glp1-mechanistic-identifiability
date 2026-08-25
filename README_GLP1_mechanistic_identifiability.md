@@ -131,7 +131,6 @@ The current R script generates the full computational figure set.
 
 | Manuscript item | R function | Output file |
 |---|---|---|
-| Figure 1. Prespecified causal architecture | `plot_figure_1_causal_architecture()` | `outputs/figures/figure_1_causal_architecture.png` |
 | Figure 2. Estimated pathway contrast across mediator correlation | `plot_figure_2_pathway_contrast()` | `outputs/figures/figure_2_pathway_contrast.png` |
 | Figure 3. GWAS-summary genetic-instrument simulation | `plot_figure_3_gwas_summary()` | `outputs/figures/figure_3_gwas_summary.png` |
 | Figure 4. Sample-size stress test | `plot_figure_4_sample_size_stress_test()` | `outputs/figures/figure_4_sample_size_stress_test.png` |
