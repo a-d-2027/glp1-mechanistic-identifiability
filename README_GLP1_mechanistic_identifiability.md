@@ -151,6 +151,24 @@ Delta_hat = psi_H_hat - psi_M_hat
 
 Positive values favor the neural pathway and negative values favor the metabolic pathway.
 
+
+### Current Figure 3
+
+`plot_figure_3_gwas_summary()` generates the **current two-panel Figure 3 directly in R** from the synthetic GWAS-summary results returned by `run_gwas_summary_analysis()`.
+
+The upper panel, titled **Genetic Validation**, plots the simulated SNP-outcome associations (`by`) against SNP-GLP-1 signaling associations (`bx`) for cognition, education, and Alzheimer disease, with outcome-specific regression lines through the origin.
+
+The lower panel, titled **IVW MR Estimates**, plots the IVW point estimate and 95% confidence interval for each outcome.
+
+The final combined figure is written to:
+
+```text
+outputs/figures/figure_3_gwas_summary.png
+```
+
+No pre-existing image file is read or copied by this function.
+
+
 ## Manuscript table mapping
 
 | Manuscript item | Output file |

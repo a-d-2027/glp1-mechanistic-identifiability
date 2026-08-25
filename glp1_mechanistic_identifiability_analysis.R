@@ -1671,6 +1671,183 @@ plot_figure_2_pathway_contrast <- function(
 }
 
 
+#' Main Figure 3: GWAS-summary genetic validation and IVW MR estimates.
+#'
+#' Reproduces the two-panel Figure 3 used in the current manuscript.
+#'
+#' Top panel:
+#'   SNP-outcome associations (by) are plotted against SNP-GLP-1 signaling
+#'   associations (bx), separately for cognition, education, and Alzheimer
+#'   disease. Weighted/summary-data simulation results are shown with a
+#'   regression line through the origin for each outcome.
+#'
+#' Bottom panel:
+#'   IVW estimates and 95% confidence intervals are shown for the three
+#'   simulated outcomes.
+#'
+#' The plotted data are generated within run_gwas_summary_analysis(); no
+#' external figure file is required.
+plot_figure_3_gwas_summary <- function(
+  gwas_results,
+  output_file
+) {
+  ensure_directory(dirname(output_file))
+  
+  gwas_data <- gwas_results$gwas_data |>
+    dplyr::mutate(
+      outcome = factor(
+        outcome,
+        levels = c(
+          "Alzheimers",
+          "Cognition",
+          "Education"
+        ),
+        labels = c(
+          "Alzheimers",
+          "Cognition",
+          "Education"
+        )
+      )
+    )
+  
+  mr_summary <- gwas_results$mr_summary
+  
+  # -----------------------------------------------------------------------
+  # Panel A: SNP-level GWAS-summary relationships
+  # -----------------------------------------------------------------------
+  scatter_plot <- ggplot2::ggplot(
+    gwas_data,
+    ggplot2::aes(
+      x = bx,
+      y = by,
+      color = outcome
+    )
+  ) +
+    ggplot2::geom_point(
+      alpha = 0.55,
+      size = 2.0
+    ) +
+    ggplot2::geom_smooth(
+      method = "lm",
+      formula = y ~ x - 1,
+      se = TRUE,
+      linewidth = 0.9
+    ) +
+    ggplot2::labs(
+      title = "Genetic Validation",
+      x = "Effect on GLP-1 (bx)",
+      y = "Effect on Outcome (by)",
+      color = NULL
+    ) +
+    publication_theme(base_size = 13) +
+    ggplot2::theme(
+      legend.position = "none",
+      plot.title = ggplot2::element_text(
+        face = "bold",
+        hjust = 0.5,
+        size = 18
+      ),
+      axis.title = ggplot2::element_text(
+        face = "bold",
+        size = 14
+      ),
+      axis.text = ggplot2::element_text(
+        color = "black",
+        size = 11
+      )
+    )
+  
+  # -----------------------------------------------------------------------
+  # Panel B: IVW estimates and 95% confidence intervals
+  # -----------------------------------------------------------------------
+  forest_data <- mr_summary |>
+    dplyr::filter(method == "IVW") |>
+    dplyr::mutate(
+      lower = beta - 1.96 * se,
+      upper = beta + 1.96 * se,
+      outcome_label = factor(
+        outcome,
+        levels = c(
+          "Alzheimers",
+          "Cognition",
+          "Education"
+        )
+      )
+    )
+  
+  forest_plot <- ggplot2::ggplot(
+    forest_data,
+    ggplot2::aes(
+      x = beta,
+      y = outcome_label
+    )
+  ) +
+    ggplot2::geom_vline(
+      xintercept = 0,
+      linetype = 2,
+      linewidth = 0.8
+    ) +
+    ggplot2::geom_point(
+      size = 4.0
+    ) +
+    ggplot2::geom_errorbar(
+      ggplot2::aes(
+        xmin = lower,
+        xmax = upper
+      ),
+      orientation = "y",
+      width = 0.20,
+      linewidth = 0.9
+    ) +
+    ggplot2::labs(
+      title = "IVW MR Estimates",
+      x = "Effect Size",
+      y = NULL
+    ) +
+    publication_theme(base_size = 13) +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(
+        face = "bold",
+        hjust = 0.5,
+        size = 18
+      ),
+      axis.title.x = ggplot2::element_text(
+        face = "bold",
+        size = 14
+      ),
+      axis.text = ggplot2::element_text(
+        color = "black",
+        face = "bold",
+        size = 12
+      )
+    )
+  
+  # Vertical two-panel composition used in the manuscript.
+  figure_3 <- scatter_plot / forest_plot +
+    patchwork::plot_layout(
+      heights = c(1.05, 0.95)
+    )
+  
+  ggplot2::ggsave(
+    filename = output_file,
+    plot = figure_3,
+    width = 10,
+    height = 12,
+    dpi = 300,
+    bg = "white"
+  )
+  
+  invisible(
+    list(
+      figure = figure_3,
+      scatter_data = gwas_data,
+      forest_data = forest_data
+    )
+  )
+}
+
+
+
 #' Main Figure 4: sample-size stress test.
 plot_figure_4_sample_size_stress_test <- function(
     operating_characteristics,
@@ -1972,104 +2149,6 @@ plot_figure_s2_individual_2sls <- function(
   )
 
   invisible(p)
-}
-
-
-#' Main Figure 3: GWAS-summary genetic-instrument simulation.
-plot_figure_3_gwas_summary <- function(
-    gwas_results,
-    output_file
-) {
-  ensure_directory(dirname(output_file))
-
-  gwas_data <- gwas_results$gwas_data
-  mr_summary <- gwas_results$mr_summary
-
-  scatter_plot <- ggplot2::ggplot(
-    gwas_data,
-    ggplot2::aes(
-      x = bx,
-      y = by,
-      color = outcome
-    )
-  ) +
-    ggplot2::geom_point(
-      alpha = 0.55,
-      size = 1.6
-    ) +
-    ggplot2::geom_smooth(
-      method = "lm",
-      formula = y ~ x - 1,
-      se = TRUE,
-      linewidth = 0.8
-    ) +
-    ggplot2::geom_hline(
-      yintercept = 0,
-      linetype = 2
-    ) +
-    ggplot2::labs(
-      title = "GWAS-summary simulation",
-      x = "SNP effect on GLP-1 signaling",
-      y = "SNP effect on outcome",
-      color = "Outcome"
-    ) +
-    publication_theme(base_size = 11)
-
-  forest_data <- mr_summary |>
-    dplyr::filter(method == "IVW") |>
-    dplyr::mutate(
-      lower = beta - 1.96 * se,
-      upper = beta + 1.96 * se,
-      outcome_label = paste0(
-        outcome,
-        " (N=",
-        format(sample_size, big.mark = ",", scientific = FALSE),
-        ")"
-      )
-    )
-
-  forest_plot <- ggplot2::ggplot(
-    forest_data,
-    ggplot2::aes(
-      x = beta,
-      y = outcome_label
-    )
-  ) +
-    ggplot2::geom_vline(
-      xintercept = 0,
-      linetype = 2
-    ) +
-    ggplot2::geom_point(size = 2.7) +
-    ggplot2::geom_errorbar(
-      ggplot2::aes(
-        xmin = lower,
-        xmax = upper
-      ),
-      orientation = "y",
-      width = 0.18
-    ) +
-    ggplot2::labs(
-      title = "IVW estimates",
-      x = "Estimated causal effect",
-      y = NULL
-    ) +
-    publication_theme(base_size = 11)
-
-  combined <- scatter_plot / forest_plot +
-    patchwork::plot_layout(
-      heights = c(1.1, 0.9)
-    )
-
-  ggplot2::ggsave(
-    output_file,
-    combined,
-    width = 12,
-    height = 11,
-    dpi = 300,
-    bg = "white"
-  )
-
-  invisible(combined)
 }
 
 
