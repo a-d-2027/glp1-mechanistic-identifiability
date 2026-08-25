@@ -1180,22 +1180,111 @@ export_simulation_parameter_table <- function(output_dir) {
   ensure_directory(output_dir)
 
   parameter_table <- tibble::tribble(
-    ~component, ~parameter, ~description, ~value,
-    "Treatment", "alpha_t", "Treatment to GLP-1 signaling coefficient", "0.90",
-    "Neural pathway", "beta_g", "GLP-1 signaling to neural mediator coefficient", "0.60",
-    "Metabolic pathway", "gamma_g", "GLP-1 signaling to metabolic mediator coefficient", "0.60",
-    "Mediator overlap", "rho_hm", "Residual neural-metabolic mediator correlation", "0.2, 0.6, 0.8",
-    "Neural-dominant", "delta_h / delta_m", "Mediator-to-cognition coefficients", "0.45 / 0.15",
-    "Metabolic-dominant", "delta_h / delta_m", "Mediator-to-cognition coefficients", "0.08 / 0.35",
-    "Shared", "delta_h / delta_m", "Mediator-to-cognition coefficients", "0.25 / 0.25",
-    "Heterogeneous", "delta_h / delta_m", "Mediator-to-cognition coefficients", "0.22 / 0.18",
-    "Heterogeneous", "delta_hs", "Neural mediator by receptor-sensitivity coefficient", "0.22",
-    "Null", "delta_h / delta_m", "Mediator-to-cognition coefficients", "0 / 0",
-    "Primary design", "N", "Simulated cohort size", "5000",
-    "Primary design", "N_MC", "Monte Carlo replicates per scenario x rho_hm condition", "500",
-    "Sample-size stress test", "N", "Simulated cohort sizes", "500, 1000, 2500, 5000",
-    "Measurement-error stress test", "R", "Mediator reliability", "1.00, 0.80, 0.60",
-    "GWAS summary", "beta_true", "Programmed causal slopes", "Cognition 0.18; Education 0.12; Alzheimer -0.22"
+    ~component, ~parameter, ~description, ~implemented_value,
+
+    "Baseline covariate", "Age",
+    "Normal draw, clipped to the specified age range, then standardized",
+    "Z_Age ~ N(71.8, 7.1^2); Age_Real = max(55, min(Z_Age, 90)); Age = scale(Age_Real)",
+
+    "Baseline covariate", "BMI",
+    "Normal draw, clipped to the specified BMI range, then standardized",
+    "Z_BMI ~ N(26.5, 5.2^2); BMI_Real = max(16, min(Z_BMI, 55)); BMI = scale(BMI_Real)",
+
+    "Treatment", "treatment",
+    "Randomized treatment assignment",
+    "Bernoulli(0.5)",
+
+    "Genetic instrument", "pgs",
+    "Simulated polygenic score",
+    "N(0,1)",
+
+    "Metabolic burden", "epsilon_HOMA",
+    "Residual used in the HOMA-like variable",
+    "N(0, 0.5^2); HOMA_IR = max(0.1, 2.6 + 1.8*BMI + epsilon_HOMA)",
+
+    "GLP-1 signaling", "alpha_t",
+    "Treatment to GLP-1 signaling coefficient",
+    "0.90",
+
+    "GLP-1 signaling", "epsilon_G",
+    "GLP-1 signaling residual",
+    "N(0,1); variance = 1",
+
+    "Neural pathway", "beta_g",
+    "GLP-1 signaling to neural mediator coefficient",
+    "0.60",
+
+    "Metabolic pathway", "gamma_g",
+    "GLP-1 signaling to metabolic mediator coefficient",
+    "0.60",
+
+    "Mediator residuals", "epsilon_H, epsilon_M",
+    "Bivariate-normal neural and metabolic mediator residuals",
+    "N2((0,0)', Sigma); Sigma = [[1, rho_HM], [rho_HM, 1]]; marginal residual variances = 1",
+
+    "Mediator overlap", "rho_hm",
+    "Residual neural-metabolic mediator correlation",
+    "0.2, 0.6, 0.8",
+
+    "Receptor sensitivity", "Sensitivity | treatment=1",
+    "Receptor sensitivity in the treated group before standardization",
+    "N(1.3, 0.1^2)",
+
+    "Receptor sensitivity", "Sensitivity | treatment=0",
+    "Receptor sensitivity in the control group before standardization",
+    "N(1.0, 0.1^2)",
+
+    "Receptor sensitivity", "S_std",
+    "Standardized receptor sensitivity",
+    "scale(Sensitivity)",
+
+    "Outcome", "epsilon_Y",
+    "Cognition residual",
+    "N(0,1); variance = 1",
+
+    "Neural-dominant", "delta_h / delta_m",
+    "Mediator-to-cognition coefficients",
+    "0.45 / 0.15",
+
+    "Metabolic-dominant", "delta_h / delta_m",
+    "Mediator-to-cognition coefficients",
+    "0.08 / 0.35",
+
+    "Shared", "delta_h / delta_m",
+    "Mediator-to-cognition coefficients",
+    "0.25 / 0.25",
+
+    "Heterogeneous", "delta_h / delta_m",
+    "Mediator-to-cognition coefficients",
+    "0.22 / 0.18",
+
+    "Heterogeneous", "delta_hs",
+    "Neural mediator by receptor-sensitivity coefficient",
+    "0.22",
+
+    "Null", "delta_h / delta_m",
+    "Mediator-to-cognition coefficients",
+    "0 / 0",
+
+    "Primary design", "N",
+    "Simulated cohort size",
+    "5000",
+
+    "Primary design", "N_MC",
+    "Monte Carlo replicates per scenario x rho_hm condition",
+    "500",
+
+    "Sample-size stress test", "N",
+    "Simulated cohort sizes",
+    "500, 1000, 2500, 5000",
+
+    "Measurement-error stress test", "R",
+    "Mediator reliability",
+    "1.00, 0.80, 0.60",
+
+    "GWAS summary", "beta_true",
+    "Programmed causal slopes",
+    "Cognition 0.18; Education 0.12; Alzheimer -0.22"
   )
 
   readr::write_csv(
@@ -1208,7 +1297,6 @@ export_simulation_parameter_table <- function(output_dir) {
 
   invisible(parameter_table)
 }
-
 
 #' Create and export tables used in the manuscript and supplement.
 export_manuscript_tables <- function(
@@ -1485,6 +1573,104 @@ export_manuscript_tables <- function(
 # ==============================================================================
 # 9. Manuscript figures
 # ==============================================================================
+
+#' Main Figure 1: prespecified causal architecture.
+#'
+#' Generated with ggplot2 so the complete computational figure set is
+#' reproducible directly from this repository.
+plot_figure_1_causal_architecture <- function(
+    output_file
+) {
+  ensure_directory(dirname(output_file))
+
+  nodes <- tibble::tribble(
+    ~node, ~x, ~y, ~label,
+    "T",   0.0, 1.0, "Treatment\n(T)",
+    "G",   1.5, 1.0, "GLP-1 signaling\n(G)",
+    "H",   3.0, 1.6, "Neural mediator\n(H: HRV)",
+    "M",   3.0, 0.4, "Metabolic mediator\n(M)",
+    "Y",   4.6, 1.0, "Cognition\n(Y)",
+    "PGS", 1.5, 2.0, "Polygenic score\n(PGS)"
+  )
+
+  edges <- tibble::tribble(
+    ~x, ~y, ~xend, ~yend,
+    0.3, 1.0, 1.15, 1.0,
+    1.85, 1.0, 2.65, 1.52,
+    1.85, 1.0, 2.65, 0.48,
+    3.35, 1.55, 4.25, 1.05,
+    3.35, 0.45, 4.25, 0.95,
+    1.5, 1.72, 1.5, 1.28
+  )
+
+  p <- ggplot2::ggplot() +
+    ggplot2::geom_segment(
+      data = edges,
+      ggplot2::aes(
+        x = x, y = y, xend = xend, yend = yend
+      ),
+      linewidth = 0.8,
+      arrow = grid::arrow(
+        length = grid::unit(0.18, "inches"),
+        type = "closed"
+      )
+    ) +
+    ggplot2::geom_segment(
+      ggplot2::aes(
+        x = 2.70, y = 1.30,
+        xend = 2.70, yend = 0.70
+      ),
+      linetype = 2,
+      linewidth = 0.8
+    ) +
+    ggplot2::annotate(
+      "text",
+      x = 2.83,
+      y = 1.00,
+      label = expression(rho[HM]),
+      hjust = 0,
+      size = 4.3
+    ) +
+    ggplot2::geom_label(
+      data = nodes,
+      ggplot2::aes(x = x, y = y, label = label),
+      size = 4.0,
+      label.size = 0.5,
+      label.padding = grid::unit(0.20, "lines"),
+      fill = "white"
+    ) +
+    ggplot2::coord_cartesian(
+      xlim = c(-0.4, 5.1),
+      ylim = c(0.0, 2.35),
+      clip = "off"
+    ) +
+    ggplot2::labs(
+      title = "Prespecified causal architecture for pathway analysis"
+    ) +
+    ggplot2::theme_void(base_size = 12) +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(
+        face = "bold",
+        hjust = 0.5
+      ),
+      plot.background = ggplot2::element_rect(
+        fill = "white",
+        color = NA
+      )
+    )
+
+  ggplot2::ggsave(
+    output_file,
+    p,
+    width = 10,
+    height = 5,
+    dpi = 300,
+    bg = "white"
+  )
+
+  invisible(p)
+}
+
 
 #' Main Figure 2: estimated pathway contrast across mediator correlation.
 #'

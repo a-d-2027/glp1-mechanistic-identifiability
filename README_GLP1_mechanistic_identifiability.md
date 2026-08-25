@@ -102,6 +102,20 @@ Delta_true = psi_H,true - psi_M,true
 
 Bias, RMSE, and confidence-interval coverage are evaluated against these analysis-scale targets.
 
+
+## Complete stochastic specification
+
+The R code and `table_s2_simulation_parameters.csv` provide the exact data-generating distributions used in the simulation. In particular:
+
+- `epsilon_G ~ N(0,1)` and `epsilon_Y ~ N(0,1)`;
+- `(epsilon_H, epsilon_M)` is bivariate normal with mean `(0,0)` and covariance matrix `[[1, rho_HM], [rho_HM, 1]]`, so both mediator residual variances equal 1;
+- receptor sensitivity is `N(1.3, 0.1^2)` for treated observations and `N(1.0, 0.1^2)` for controls, followed by within-cohort standardization;
+- age is drawn from `N(71.8, 7.1^2)`, clipped to `[55, 90]`, and standardized;
+- BMI is drawn from `N(26.5, 5.2^2)`, clipped to `[16, 55]`, and standardized;
+- the HOMA-like residual is `N(0, 0.5^2)`.
+
+The age and BMI implementation uses clipping (`pmax`/`pmin`), not sampling from a mathematically truncated normal distribution.
+
 ## Pathway discrimination
 
 Correct discrimination is defined only for scenarios with a prespecified dominant pathway:
@@ -117,6 +131,7 @@ The current R script generates the full computational figure set.
 
 | Manuscript item | R function | Output file |
 |---|---|---|
+| Figure 1. Prespecified causal architecture | `plot_figure_1_causal_architecture()` | `outputs/figures/figure_1_causal_architecture.png` |
 | Figure 2. Estimated pathway contrast across mediator correlation | `plot_figure_2_pathway_contrast()` | `outputs/figures/figure_2_pathway_contrast.png` |
 | Figure 3. GWAS-summary genetic-instrument simulation | `plot_figure_3_gwas_summary()` | `outputs/figures/figure_3_gwas_summary.png` |
 | Figure 4. Sample-size stress test | `plot_figure_4_sample_size_stress_test()` | `outputs/figures/figure_4_sample_size_stress_test.png` |
